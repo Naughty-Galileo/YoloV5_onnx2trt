@@ -17,7 +17,7 @@ list(APPEND lib_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/SampleDetector.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Yolov5TrtInfer.cpp)
 ## add_library (detector SHARED ${CMAKE_CURRENT_SOURCE_DIR}/SampleDetector.cpp)
-## add_library (detector SHARED ${CMAKE_CURRENT_SOURCE_DIR}/Yolov5TrtInfer.cpp)
+## add_library (detector SHARED ${CMAKE_CURRENT_SOURCE_DIR}/SmokePartInfer.cpp)
 
 add_library (detector SHARED ${lib_SOURCES})
 target_include_directories(detector
