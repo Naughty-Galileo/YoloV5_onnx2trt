@@ -6,7 +6,7 @@
 #include <glog/logging.h>
 
 #include "SampleDetector.hpp"
-#include "Yolov5TrtInfer.hpp"
+#include "SmokePartInfer.hpp"
 
 #include "NvOnnxParser.h"
 #include "./logging.h"
