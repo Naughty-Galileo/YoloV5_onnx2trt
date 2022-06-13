@@ -99,7 +99,7 @@ private:
     int m_iPadDeltaY = 0;
     float m_fRecoverScale = 1.f; 
     
-    Yolov5TrtInfer* smoke_detector;
+    SmokePartInfer* smoke_detector;
     
     bool m_bUninit = false;
     
