@@ -1,5 +1,5 @@
-#ifndef YOLOV5_TRT_INFER_H
-#define YOLOV5_TRT_INFER_H
+#ifndef SMOKE_PART_INFER_H
+#define SMOKE_PART_INFER_H
 
 #include <memory>
 #include <map>
@@ -13,7 +13,7 @@ using namespace cv;
 using namespace std;
 using namespace nvinfer1;
 
-class Yolov5TrtInfer
+class SmokePartInfer
 {
     public:
         typedef struct {
@@ -23,8 +23,8 @@ class Yolov5TrtInfer
             vector<float> Dpoints;
         } DetItem;
         
-        Yolov5TrtInfer();
-        ~Yolov5TrtInfer();
+        SmokePartInfer();
+        ~SmokePartInfer();
         
         bool runDetect(const cv::Mat& cInMat, const float Thresh, const int smokePartAreas, std::vector<DetItem>& smokeDets, int xmin, int ymin);
         bool doNms(std::vector<DetItem>& smokeDets, const int smokePartAreas);
