@@ -8,7 +8,7 @@
 
 ##  model 1
 - 利用yolov5-face检测人脸以及对应关键点
-> 这个模型可以检测front_head、side_head、back_head、hand、smoke_part_box、smoke，方便后期扩展，目前这个模型只识别人脸，因为烟头召回率极低，故利用第二个模型检测烟头
+> 这个模型可以检测front_head、side_head、back_head、hand、smoke_part_box、smoke，方便后期扩展，目前这个模型只用来识别人脸，因为烟头召回率极低，故利用第二个模型检测烟头，smoke为抽烟的人，但是为了提升准确度，只用第二个模型检测到的烟头作为抽烟人员的判断依据
 
 ##  model 2
 - 修改yolov5-face源代码，改为检测两个关键点的，用于检测烟头以及两个端点
