@@ -190,15 +190,7 @@ bool Yolov5TrtInfer::doNms(std::vector<DetItem>& smokeDets, const int smokePartA
         {
             if (smokeDets[i].m_eType == smokeDets[j].m_eType) 
             {
-                if(smokeDets[i].m_cRect == (smokeDets[j].m_cRect & smokeDets[i].m_cRect))
-                {
-                    smokeDets[i].m_fScore = 0;
-                }
-                else if(smoke_boxIOU(smokeDets[i].m_cRect, smokeDets[j].m_cRect) >= 0.2)
-                {
-                    smokeDets[j].m_fScore = 0;
-                }
-                else if(smokeDets[j].m_cRect == (smokeDets[j].m_cRect&smokeDets[i].m_cRect))
+                if(smoke_boxIOU(smokeDets[i].m_cRect, smokeDets[j].m_cRect) >= 0.2)
                 {
                     smokeDets[j].m_fScore = 0;
                 }
