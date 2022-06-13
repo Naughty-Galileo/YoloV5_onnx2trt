@@ -9,7 +9,7 @@
 #include <cuda_runtime.h>
 #include "opencv2/core.hpp"
 
-#include "Yolov5TrtInfer.hpp"
+#include "SmokePartInfer.hpp"
 using namespace nvinfer1;
 using namespace nvonnxparser;
 using namespace cv;
