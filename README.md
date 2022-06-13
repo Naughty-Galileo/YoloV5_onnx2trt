@@ -25,5 +25,6 @@ mkdir build
 cd build
 cmake ..
 make 
-./smoke_detect
+./smoke_detect 0 0
+./smoke_detect 1 0
 ```
