@@ -6,7 +6,7 @@
 #include <glog/logging.h>
 
 #include "SampleDetector.hpp"
-#include "Yolov5TrtInfer.hpp"
+#include "SmokePartInfer.hpp"
 
 #include "NvOnnxParser.h"
 #include "./logging.h"
@@ -132,7 +132,7 @@ bool SampleDetector::Init(const std::string& strModelName) {
     cudaStreamCreate(&m_CudaStream);
     m_cPasteBoard = cv::Mat(m_cModelInputSize, CV_8UC3, cv::Scalar(128, 128, 128));
 
-    smoke_detector = new Yolov5TrtInfer();
+    smoke_detector = new SmokePartInfer();
     cout << "Init Done."<<endl;
 }
 
@@ -233,7 +233,7 @@ bool SampleDetector::ProcessImage(const cv::Mat &cv_image, std::vector<DetItem> 
                 
                 cv::Mat crop_image = cv_image(rect);
 
-                std::vector<Yolov5TrtInfer::DetItem> smokeDets;
+                std::vector<SmokePartInfer::DetItem> smokeDets;
 
                 smoke_detector->runDetect(crop_image, mSmoke_part_box_thresh, mSmokePartArea, smokeDets, new_xmin, new_ymin);
 
@@ -431,29 +431,13 @@ bool SampleDetector::doNms(std::vector<DetItem>& vecDets)
         {
             if(head && (vecDets[j].m_eType==0 ||  vecDets[j].m_eType==1))
             {
-                if(vecDets[i].m_cRect == (vecDets[j].m_cRect&vecDets[i].m_cRect))
-                {
-                    vecDets[i].m_fScore = 0;
-                }
-                else if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
-                {
-                    vecDets[j].m_fScore = 0;
-                }
-                else if(vecDets[j].m_cRect == (vecDets[j].m_cRect&vecDets[i].m_cRect))
+                if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
                 {
                     vecDets[j].m_fScore = 0;
                 }
             }
             else if(vecDets[i].m_eType == vecDets[j].m_eType){
-                if(vecDets[i].m_cRect == (vecDets[j].m_cRect&vecDets[i].m_cRect))
-                {
-                    vecDets[i].m_fScore = 0;
-                }
-                else if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
-                {
-                    vecDets[j].m_fScore = 0;
-                }
-                else if(vecDets[j].m_cRect == (vecDets[j].m_cRect&vecDets[i].m_cRect))
+                if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
                 {
                     vecDets[j].m_fScore = 0;
                 }

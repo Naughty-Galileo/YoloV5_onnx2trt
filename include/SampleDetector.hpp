@@ -9,7 +9,7 @@
 #include <cuda_runtime.h>
 #include "opencv2/core.hpp"
 
-#include "Yolov5TrtInfer.hpp"
+#include "SmokePartInfer.hpp"
 using namespace nvinfer1;
 using namespace nvonnxparser;
 using namespace cv;
@@ -99,7 +99,7 @@ private:
     int m_iPadDeltaY = 0;
     float m_fRecoverScale = 1.f; 
     
-    Yolov5TrtInfer* smoke_detector;
+    SmokePartInfer* smoke_detector;
     
     bool m_bUninit = false;
     
