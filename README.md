@@ -1,5 +1,5 @@
 # Detection of Smokers
-- 利用两个改造的yolov5-face的模型进行抽烟人员检测
+- 利用两个yolov5-face的模型进行抽烟人员检测
 - c++实现
 - onnx-->tensorrt部署
 - 利用关键点提高检测准确性
