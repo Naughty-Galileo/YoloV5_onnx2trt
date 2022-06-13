@@ -431,29 +431,13 @@ bool SampleDetector::doNms(std::vector<DetItem>& vecDets)
         {
             if(head && (vecDets[j].m_eType==0 ||  vecDets[j].m_eType==1))
             {
-                if(vecDets[i].m_cRect == (vecDets[j].m_cRect&vecDets[i].m_cRect))
-                {
-                    vecDets[i].m_fScore = 0;
-                }
-                else if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
-                {
-                    vecDets[j].m_fScore = 0;
-                }
-                else if(vecDets[j].m_cRect == (vecDets[j].m_cRect&vecDets[i].m_cRect))
+                if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
                 {
                     vecDets[j].m_fScore = 0;
                 }
             }
             else if(vecDets[i].m_eType == vecDets[j].m_eType){
-                if(vecDets[i].m_cRect == (vecDets[j].m_cRect&vecDets[i].m_cRect))
-                {
-                    vecDets[i].m_fScore = 0;
-                }
-                else if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
-                {
-                    vecDets[j].m_fScore = 0;
-                }
-                else if(vecDets[j].m_cRect == (vecDets[j].m_cRect&vecDets[i].m_cRect))
+                if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
                 {
                     vecDets[j].m_fScore = 0;
                 }
