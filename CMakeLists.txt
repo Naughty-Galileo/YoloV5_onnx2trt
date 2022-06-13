@@ -15,7 +15,7 @@ find_package(PkgConfig REQUIRED)
 # 编译detector.so
 list(APPEND lib_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/SampleDetector.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Yolov5TrtInfer.cpp)
+        ${CMAKE_CURRENT_SOURCE_DIR}/SmokePartInfer.cpp)
 ## add_library (detector SHARED ${CMAKE_CURRENT_SOURCE_DIR}/SampleDetector.cpp)
 ## add_library (detector SHARED ${CMAKE_CURRENT_SOURCE_DIR}/SmokePartInfer.cpp)
 
