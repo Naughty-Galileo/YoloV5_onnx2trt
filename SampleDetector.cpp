@@ -132,7 +132,7 @@ bool SampleDetector::Init(const std::string& strModelName) {
     cudaStreamCreate(&m_CudaStream);
     m_cPasteBoard = cv::Mat(m_cModelInputSize, CV_8UC3, cv::Scalar(128, 128, 128));
 
-    smoke_detector = new Yolov5TrtInfer();
+    smoke_detector = new SmokePartInfer();
     cout << "Init Done."<<endl;
 }
 
@@ -233,7 +233,7 @@ bool SampleDetector::ProcessImage(const cv::Mat &cv_image, std::vector<DetItem> 
                 
                 cv::Mat crop_image = cv_image(rect);
 
-                std::vector<Yolov5TrtInfer::DetItem> smokeDets;
+                std::vector<SmokePartInfer::DetItem> smokeDets;
 
                 smoke_detector->runDetect(crop_image, mSmoke_part_box_thresh, mSmokePartArea, smokeDets, new_xmin, new_ymin);
 
