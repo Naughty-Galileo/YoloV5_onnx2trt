@@ -35,18 +35,18 @@ SmokePartInfer::SmokePartInfer()
         Logger gLogger;
         IRuntime* smoke_m_CudaRuntime = createInferRuntime(gLogger);
         IBuilder* smoke_builder = createInferBuilder(gLogger.getTRTLogger());
-        cout<<"debug 1-3"<<endl;
+
         smoke_builder->setMaxBatchSize(1);
-        cout<<"debug 2"<<endl;
+
         const auto explicitBatch = 1U << static_cast<uint32_t>(NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
         INetworkDefinition* smoke_network = smoke_builder->createNetworkV2(explicitBatch);
-        cout<<"debug 3"<<endl;
+
         nvonnxparser::IParser* parser = nvonnxparser::createParser(*smoke_network, gLogger);
         parser->parseFromFile("../model/smoke-best.onnx", static_cast<int>(ILogger::Severity::kWARNING));
-        cout<<"debug 4"<<endl;
+
         IBuilderConfig* config = smoke_builder->createBuilderConfig();
         config->setMaxWorkspaceSize(1ULL << 30);
-        cout<<"debug 5"<<endl;
+
         smoke_m_CudaEngine = smoke_builder->buildEngineWithConfig(*smoke_network, *config);
         smoke_m_CudaContext = smoke_m_CudaEngine->createExecutionContext();
         
