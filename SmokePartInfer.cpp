@@ -4,7 +4,7 @@
 #include <fstream>
 #include <glog/logging.h>
 
-#include "Yolov5TrtInfer.hpp"
+#include "SmokePartInfer.hpp"
 
 #include "NvOnnxParser.h"
 #include "./logging.h"
@@ -28,7 +28,7 @@ bool smoke_exists(const std::string& name) {
     return f.good();
 }
 
-Yolov5TrtInfer::Yolov5TrtInfer()
+SmokePartInfer::SmokePartInfer()
 {
     if(! smoke_exists("../model/smoke.trt"))
     {
@@ -109,7 +109,7 @@ Yolov5TrtInfer::Yolov5TrtInfer()
     smoke_m_cPasteBoard = cv::Mat(smoke_m_cModelInputSize, CV_8UC3, cv::Scalar(128, 128, 128));
 }
 
-Yolov5TrtInfer::~Yolov5TrtInfer()
+SmokePartInfer::~SmokePartInfer()
 {
     for(auto &p:smoke_m_ArrayDevMemory)
     {
@@ -127,7 +127,7 @@ Yolov5TrtInfer::~Yolov5TrtInfer()
     cudaStreamDestroy(smoke_m_CudaStream);
 }
 
-bool Yolov5TrtInfer::runDetect(const cv::Mat& cInMat,const float Thresh, const int smokePartAreas, std::vector<DetItem>& smokeDets, int xmin, int ymin)
+bool SmokePartInfer::runDetect(const cv::Mat& cInMat,const float Thresh, const int smokePartAreas, std::vector<DetItem>& smokeDets, int xmin, int ymin)
 {
     doPreprocess(cInMat);
     doInference();
@@ -173,7 +173,7 @@ bool Yolov5TrtInfer::runDetect(const cv::Mat& cInMat,const float Thresh, const i
     return true;
 }
 
-bool Yolov5TrtInfer::doNms(std::vector<DetItem>& smokeDets, const int smokePartAreas)
+bool SmokePartInfer::doNms(std::vector<DetItem>& smokeDets, const int smokePartAreas)
 {
     std::sort(smokeDets.begin(),smokeDets.end(),[](const DetItem &det1, const DetItem &det2){return det1.m_fScore > det2.m_fScore;});
     for (int i = 0; i < smokeDets.size(); ++i)
@@ -213,7 +213,7 @@ bool Yolov5TrtInfer::doNms(std::vector<DetItem>& smokeDets, const int smokePartA
 }
 
 
-bool Yolov5TrtInfer::doPreprocess(const cv::Mat& cInMat)
+bool SmokePartInfer::doPreprocess(const cv::Mat& cInMat)
 {
     smoke_m_iInWidth = cInMat.cols;
     smoke_m_iInHeight = cInMat.rows;    
@@ -243,7 +243,7 @@ bool Yolov5TrtInfer::doPreprocess(const cv::Mat& cInMat)
 }
 
 
-bool Yolov5TrtInfer::doInference()
+bool SmokePartInfer::doInference()
 {
     // 输入从host拷贝到device
     auto ret = cudaMemcpyAsync(smoke_m_ArrayDevMemory[smoke_m_iInIndex], smoke_m_ArrayHostMemory[smoke_m_iInIndex], smoke_m_ArraySize[smoke_m_iInIndex], cudaMemcpyHostToDevice, smoke_m_CudaStream);
@@ -257,7 +257,7 @@ bool Yolov5TrtInfer::doInference()
 }
 
 
-bool Yolov5TrtInfer::recoverPosInfo(std::vector<DetItem>& smokeDets, int xmin, int ymin)
+bool SmokePartInfer::recoverPosInfo(std::vector<DetItem>& smokeDets, int xmin, int ymin)
 {
     for( auto iter = smokeDets.begin(); iter != smokeDets.end(); ++iter)
     {   
@@ -287,7 +287,7 @@ bool Yolov5TrtInfer::recoverPosInfo(std::vector<DetItem>& smokeDets, int xmin, i
 }
 
 
-bool Yolov5TrtInfer::filterByThresh(const float Thresh, std::vector<DetItem>& smokeDets)
+bool SmokePartInfer::filterByThresh(const float Thresh, std::vector<DetItem>& smokeDets)
 {
     for( auto iter = smokeDets.begin(); iter != smokeDets.end(); )
     {
