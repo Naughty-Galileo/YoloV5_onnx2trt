@@ -246,7 +246,7 @@ bool SampleDetector::ProcessImage(const cv::Mat &cv_image, std::vector<DetItem> 
         } 
     }
     //阈值过滤
-    filterByThresh(vecDets);
+    // filterByThresh(vecDets);
     std::sort(vecDets.begin(), vecDets.end(), [](const DetItem &det1, const DetItem &det2){return det1.m_eType < det2.m_eType;});
 }
 
