@@ -25,5 +25,15 @@ mkdir build
 cd build
 cmake ..
 make 
-./smoke_detect
+```
+
+> 参数设置比较简单
+- 0测试图片 0不开启可视化 
+```shell
+./smoke_detect 0 0
+```
+
+- 1测试视频 0不开启可视化
+```shell
+./smoke_detect 0 0
 ```
