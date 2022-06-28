@@ -64,6 +64,9 @@ bool SampleDetector::Init(const std::string& strModelName) {
         IBuilderConfig* config = builder->createBuilderConfig();
         config->setMaxWorkspaceSize(1ULL << 30);
 
+        //启用 FP16 精度推理
+        config->setFlag(BuilderFlag::kFP16);
+
         m_CudaEngine = builder->buildEngineWithConfig(*network, *config);
         m_CudaContext = m_CudaEngine->createExecutionContext();
         

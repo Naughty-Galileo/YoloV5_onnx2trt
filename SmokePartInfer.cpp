@@ -47,6 +47,9 @@ SmokePartInfer::SmokePartInfer()
         IBuilderConfig* config = smoke_builder->createBuilderConfig();
         config->setMaxWorkspaceSize(1ULL << 30);
 
+        //启用 FP16 精度推理
+        config->setFlag(BuilderFlag::kFP16);
+
         smoke_m_CudaEngine = smoke_builder->buildEngineWithConfig(*smoke_network, *config);
         smoke_m_CudaContext = smoke_m_CudaEngine->createExecutionContext();
         
