@@ -1,19 +1,6 @@
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <fstream>
-#include <glog/logging.h>
-
 #include "SampleDetector.hpp"
-#include "SmokePartInfer.hpp"
 
-#include "NvOnnxParser.h"
-#include "./logging.h"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "NvInfer.h"
-
-#define IN_NAME "input"
+#define IN_NAME "images"
 #define OUT_NAME "output"
 
 using namespace nvinfer1;
@@ -118,15 +105,17 @@ bool SampleDetector::Init(const std::string& strModelName) {
     m_ArrayHostMemory[m_iInIndex] = malloc(size * sizeof(float));
     
     //方便NHWC到NCHW的预处理
-    m_InputWrappers.emplace_back(dims_i.d[2], dims_i.d[3], CV_32FC1, m_ArrayHostMemory[m_iInIndex]);
-    m_InputWrappers.emplace_back(dims_i.d[2], dims_i.d[3], CV_32FC1, m_ArrayHostMemory[m_iInIndex] + sizeof(float) * dims_i.d[2] * dims_i.d[3] );
     m_InputWrappers.emplace_back(dims_i.d[2], dims_i.d[3], CV_32FC1, m_ArrayHostMemory[m_iInIndex] + 2 * sizeof(float) * dims_i.d[2] * dims_i.d[3]);
+    m_InputWrappers.emplace_back(dims_i.d[2], dims_i.d[3], CV_32FC1, m_ArrayHostMemory[m_iInIndex] + sizeof(float) * dims_i.d[2] * dims_i.d[3] );
+    m_InputWrappers.emplace_back(dims_i.d[2], dims_i.d[3], CV_32FC1, m_ArrayHostMemory[m_iInIndex]);
+    
     m_ArraySize[m_iInIndex] = size *sizeof(float);
     
     //output
     dims_i = m_CudaEngine->getBindingDimensions(m_iOutIndex);
     cout << "output dims "<< dims_i.d[0] << " " << dims_i.d[1] << " " << dims_i.d[2] << endl;
-    mClasses = dims_i.d[2]-15;
+    m_iBoxNums = dims_i.d[1];
+    mClasses = dims_i.d[2]-5;
     size = dims_i.d[0] * dims_i.d[1] * dims_i.d[2];
     cudaMalloc(&m_ArrayDevMemory[m_iOutIndex], size * sizeof(float));
     m_ArrayHostMemory[m_iOutIndex] = malloc( size * sizeof(float));
@@ -134,8 +123,6 @@ bool SampleDetector::Init(const std::string& strModelName) {
     
     cudaStreamCreate(&m_CudaStream);
     m_cPasteBoard = cv::Mat(m_cModelInputSize, CV_8UC3, cv::Scalar(128, 128, 128));
-
-    smoke_detector = new SmokePartInfer();
     cout << "Init Done."<<endl;
 }
 
@@ -159,7 +146,6 @@ bool SampleDetector::UnInit() {
     m_CudaEngine->destroy();
     cudaStreamDestroy(m_CudaStream);
     m_bUninit = true;
-    delete smoke_detector;
     cout<<"UnInit"<<endl;
 }
 
@@ -172,14 +158,14 @@ bool SampleDetector::ProcessImage(const cv::Mat &cv_image, std::vector<DetItem> 
     doInference();
     
     float* pData = (float*)m_ArrayHostMemory[m_iOutIndex];
-    int iNumClass = mClasses;
     
     int iIndex = 0;
-    float fConf = 0, x = 0, y = 0, w = 0, h = 0, r_x = 0, r_y = 0;
+    float fConf = 0.f, x = 0.f, y = 0.f, w = 0.f, h = 0.f;
     int iBestClassId = 0;
-    for(int i=0;i<25200;++i)
+    
+    for(int i=0;i<m_iBoxNums;++i)
     {
-        iIndex = i * 21 + 4;
+        iIndex = i * (mClasses+5) + 4;
         fConf = pData[iIndex];
         if (fConf > 0.05)    // 0.05
         {
@@ -189,13 +175,6 @@ bool SampleDetector::ProcessImage(const cv::Mat &cv_image, std::vector<DetItem> 
             x = pData[--iIndex];
             
             iIndex += 5;
-            std::vector<float> points;
-            for(int j=0;j<5;j++)
-            {
-                points.emplace_back((float)pData[iIndex++]);
-                points.emplace_back((float)pData[iIndex++]);
-            }
-
             iBestClassId = iIndex;
             for (int c = 1; c < mClasses; c++)
             {
@@ -207,50 +186,16 @@ bool SampleDetector::ProcessImage(const cv::Mat &cv_image, std::vector<DetItem> 
             fConf = fConf*pData[iBestClassId];
             if (fConf < 0.05) continue;         
 
-            vecDets.push_back( {cv::Rect2d(x-w/2, y-h/2, w, h), fConf, iBestClassId - iIndex, points});                 
+            vecDets.push_back( {x- w/2.0, y-h/2.0, x + w/2.0, y + h/2.0, fConf, iBestClassId - iIndex});                 
         }
     }
-    
-    filter(vecDets);
     // 恢复位置到原图
     recoverPosInfo(vecDets);
-    //nms
+    // nms
     doNms(vecDets);
-    int count = vecDets.size();
     
-    int Width = cv_image.cols;
-    int Height = cv_image.rows;
-    
-    for(int index=0;index<count;index++)
-    {
-        if(vecDets[index].m_eType==0 || vecDets[index].m_eType==1)
-        {
-            int new_xmin = std::max((int)(vecDets[index].m_cRect.x - vecDets[index].m_cRect.width), 1);
-            int new_ymin = std::max((int)(vecDets[index].m_cRect.y), 1);
-            int new_xmax = std::min((int)(vecDets[index].m_cRect.x + 2*vecDets[index].m_cRect.width), Width-1);
-            int new_ymax = std::min((int)(vecDets[index].m_cRect.y + 2*vecDets[index].m_cRect.height), Height-1);
-
-            if(new_xmax-new_xmin>mFace_size && new_ymax-new_ymin>mFace_size)
-            {
-                cv::Rect rect(new_xmin, new_ymin, new_xmax-new_xmin, new_ymax-new_ymin);
-                
-                cv::Mat crop_image = cv_image(rect);
-
-                std::vector<SmokePartInfer::DetItem> smokeDets;
-
-                smoke_detector->runDetect(crop_image, mSmoke_part_box_thresh, mSmokePartArea, smokeDets, new_xmin, new_ymin);
-
-                for(auto smoke_part:smokeDets)
-                {
-                    cout << "Found smoke_part_box" << endl;
-                    vecDets.push_back( {smoke_part.m_cRect, smoke_part.m_fScore, 3, smoke_part.Dpoints} );
-                }
-            }
-        } 
-    }
-    //阈值过滤
-    // filterByThresh(vecDets);
-    std::sort(vecDets.begin(), vecDets.end(), [](const DetItem &det1, const DetItem &det2){return det1.m_eType < det2.m_eType;});
+    // 阈值过滤
+    filter(vecDets);
 }
 
 bool SampleDetector::doPreprocess(const cv::Mat& cInMat)
@@ -300,38 +245,10 @@ bool SampleDetector::recoverPosInfo(std::vector<DetItem>& vecDets)
 {
     for( auto iter = vecDets.begin(); iter != vecDets.end(); ++iter)
     {       
-        float x = std::max(std::min((float)((iter->m_cRect.x-m_iPadDeltaX)/m_fRecoverScale),(float)(img_w - 1)), 0.f);
-        float y = std::max(std::min((float)((iter->m_cRect.y-m_iPadDeltaY)/ m_fRecoverScale),(float)(img_h - 1)), 0.f);
-        float w = std::max(std::min((float)((iter->m_cRect.width)/m_fRecoverScale),(float)(img_w - x - 1)), 0.f);
-        float h = std::max(std::min((float)((iter->m_cRect.height)/m_fRecoverScale),(float)(img_h - y - 1)), 0.f);
-        
-        iter->m_cRect.x = x;
-        iter->m_cRect.y = y;
-        iter->m_cRect.width = w;
-        iter->m_cRect.height = h;
-        
-        int count = 0;
-        if(iter->m_eType==0 || iter->m_eType==1)
-        {
-            for(auto& num:iter->Dpoints)
-            {
-                if(count%2==0){
-                    num = std::max(std::min((float)((num-m_iPadDeltaX)/m_fRecoverScale),(float)(img_w - 1)), 0.f);
-                    if(num<x-10 || num>x+w+10)
-                    {
-                        iter->m_fScore = 0.f;
-                    }
-                }
-                else{
-                    num = std::max(std::min((float)(( num - m_iPadDeltaY ) / m_fRecoverScale),(float)(img_h - 1)), 0.f);
-                    if(num<y-10 || num>y+h+10)
-                    {
-                        iter->m_fScore = 0.f;
-                    }
-                }
-                count++;
-            }
-        }
+        iter->x1 = std::max(std::min((float)((iter->x1 - m_iPadDeltaX)/m_fRecoverScale), (float)(img_w - 1)), 0.f);
+        iter->y1 = std::max(std::min((float)((iter->y1 - m_iPadDeltaY)/ m_fRecoverScale),(float)(img_h - 1)), 0.f);
+        iter->x2 = std::max(std::min((float)((iter->x2 - m_iPadDeltaX)/m_fRecoverScale), (float)(img_w - 1)), 0.f);
+        iter->x2 = std::max(std::min((float)((iter->y2 - m_iPadDeltaY)/ m_fRecoverScale),(float)(img_h - 1)), 0.f);
     }
     return true;  
 }
@@ -342,27 +259,7 @@ bool SampleDetector::filter(std::vector<DetItem>& vecDets)
     for( auto iter = vecDets.begin(); iter != vecDets.end(); )
     {
         float fThresh = mConf_thresh;
-        if(iter->m_eType == 0){
-            fThresh = mFront_head_thresh;
-        }
-        else if(iter->m_eType == 1){
-            fThresh = mSide_head_thresh;
-        }
-        else if(iter->m_eType == 2){
-            fThresh = mBack_head_thresh;
-        }
-        else if(iter->m_eType == 4){
-            fThresh = mHand_thresh;
-        }
-        else if(iter->m_eType == 3){
-            fThresh = mSmoke_part_box_thresh;
-            iter = vecDets.erase(iter);
-            continue;
-        }
-        else if(iter->m_eType == 5){
-            fThresh = mSmoke_thresh;
-        }
-        if( iter->m_fScore > fThresh)
+        if( iter->score > fThresh)
         {            
             ++iter;
         }
@@ -374,75 +271,28 @@ bool SampleDetector::filter(std::vector<DetItem>& vecDets)
     return true;
 }
 
-
-bool SampleDetector::filterByThresh(std::vector<DetItem>& vecDets)
-{
-    for( auto iter = vecDets.begin(); iter != vecDets.end(); )
-    {
-        float fThresh = mConf_thresh; 
-        if(iter->m_eType == 0){
-            fThresh = mFront_head_thresh;
-        }
-        else if(iter->m_eType == 1){
-            fThresh = mSide_head_thresh;
-        }
-        else if(iter->m_eType == 2){
-            fThresh = mBack_head_thresh;
-        }
-        else if(iter->m_eType == 3){
-            fThresh = mSmoke_part_box_thresh;
-        }
-        else if(iter->m_eType == 4){
-            fThresh = mHand_thresh;
-        }
-        else if(iter->m_eType == 5){
-            fThresh = mSmoke_thresh;
-        }
-        
-        if( iter->m_fScore > fThresh)
-        {            
-            ++iter;
-        }
-        else
-        {
-            iter = vecDets.erase(iter);
-        }
-    }
-    return true;
-}
 
 bool SampleDetector::doNms(std::vector<DetItem>& vecDets)
 {
-    std::sort(vecDets.begin(),vecDets.end(),[](const DetItem &det1, const DetItem &det2){return det1.m_fScore > det2.m_fScore;});
-    bool head = false;
+    std::sort(vecDets.begin(),vecDets.end(),[](const DetItem &det1, const DetItem &det2){return det1.score > det2.score;});
     
     for (int i = 0; i < vecDets.size(); ++i)
     {
-        if (vecDets[i].m_fScore < 0.005f)
+        if (vecDets[i].score < 0.1f)
         {
             continue;
-        }
-        if(vecDets[i].m_eType==0 || vecDets[i].m_eType==1)
-        {
-            head = true;
-            if(vecDets[i].m_cRect.area()< mFace_size*mFace_size){
-                vecDets[i].m_fScore = 0;
-            }
         }
         
         for (int j = i+1; j < vecDets.size(); ++j)
         {
-            if(head && (vecDets[j].m_eType==0 ||  vecDets[j].m_eType==1))
-            {
-                if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
+            if(vecDets[i].label == vecDets[j].label){
+
+                cv::Rect rect1 = cv::Rect{vecDets[i].x1, vecDets[i].y1, vecDets[i].x2 - vecDets[i].x1, vecDets[i].y2 - vecDets[i].y1};
+                cv::Rect rect2 = cv::Rect{vecDets[j].x1, vecDets[j].y1, vecDets[j].x2 - vecDets[i].x1, vecDets[j].y2 - vecDets[j].y1};
+
+                if ( boxIOU(rect1, rect2) >= mIou_thresh ) 
                 {
-                    vecDets[j].m_fScore = 0;
-                }
-            }
-            else if(vecDets[i].m_eType == vecDets[j].m_eType){
-                if ( boxIOU(vecDets[i].m_cRect, vecDets[j].m_cRect) >= mIou_thresh ) 
-                {
-                    vecDets[j].m_fScore = 0;
+                    vecDets[j].score = 0;
                 }
             }     
         }
@@ -450,7 +300,7 @@ bool SampleDetector::doNms(std::vector<DetItem>& vecDets)
     
     for( auto iter = vecDets.begin(); iter != vecDets.end(); )
     {
-        if( iter->m_fScore < 0.001f )
+        if( iter->score < 0.1f )
         {
             iter = vecDets.erase(iter);
         }
