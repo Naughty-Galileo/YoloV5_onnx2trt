@@ -1,4 +1,0 @@
-/home/ubuntu/data3/zj/YOLOv5_onnx2trt/build/CMakeFiles/rebuild_cache.dir
-/home/ubuntu/data3/zj/YOLOv5_onnx2trt/build/CMakeFiles/edit_cache.dir
-/home/ubuntu/data3/zj/YOLOv5_onnx2trt/build/CMakeFiles/smoke_detect.dir
-/home/ubuntu/data3/zj/YOLOv5_onnx2trt/build/CMakeFiles/detector.dir

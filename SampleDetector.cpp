@@ -51,7 +51,7 @@ bool SampleDetector::Init(const std::string& strModelName) {
         IBuilderConfig* config = builder->createBuilderConfig();
         config->setMaxWorkspaceSize(1ULL << 30);
 
-        //启用 FP16 精度推理
+        // FP16 
         config->setFlag(BuilderFlag::kFP16);
 
         m_CudaEngine = builder->buildEngineWithConfig(*network, *config);
@@ -105,9 +105,11 @@ bool SampleDetector::Init(const std::string& strModelName) {
     m_ArrayHostMemory[m_iInIndex] = malloc(size * sizeof(float));
     
     //方便NHWC到NCHW的预处理
+    
     m_InputWrappers.emplace_back(dims_i.d[2], dims_i.d[3], CV_32FC1, m_ArrayHostMemory[m_iInIndex] + 2 * sizeof(float) * dims_i.d[2] * dims_i.d[3]);
     m_InputWrappers.emplace_back(dims_i.d[2], dims_i.d[3], CV_32FC1, m_ArrayHostMemory[m_iInIndex] + sizeof(float) * dims_i.d[2] * dims_i.d[3] );
     m_InputWrappers.emplace_back(dims_i.d[2], dims_i.d[3], CV_32FC1, m_ArrayHostMemory[m_iInIndex]);
+    
     
     m_ArraySize[m_iInIndex] = size *sizeof(float);
     
@@ -217,14 +219,14 @@ bool SampleDetector::doPreprocess(const cv::Mat& cInMat)
         cv::resize(cInMat,cTmpResized, cv::Size( m_iInWidth * m_fRecoverScale, m_cModelInputSize.height));
         m_iPadDeltaX = (m_cModelInputSize.width - m_iInWidth * m_fRecoverScale) / 2;
         m_iPadDeltaY = 0;
-    }        
-    
+    } 
+
     //填充
     m_cPasteBoard = cv::Mat( cv::Size(m_cModelInputSize.width, m_cModelInputSize.height), CV_8UC3, cv::Scalar(114, 114, 114));
     cTmpResized.copyTo(m_cPasteBoard.rowRange(m_iPadDeltaY, m_iPadDeltaY + cTmpResized.rows).colRange(m_iPadDeltaX, m_iPadDeltaX + cTmpResized.cols));
     
     cv::cvtColor(m_cPasteBoard, m_cRGBMat, cv::COLOR_BGR2RGB);
-    m_cRGBMat.convertTo(m_Normalized, CV_32FC3, 1/255.);
+    m_cRGBMat.convertTo(m_Normalized, CV_32FC3, 1.0/255.0);
     cv::split(m_Normalized, m_InputWrappers);
     return true;
 }
@@ -245,10 +247,15 @@ bool SampleDetector::recoverPosInfo(std::vector<DetItem>& vecDets)
 {
     for( auto iter = vecDets.begin(); iter != vecDets.end(); ++iter)
     {       
-        iter->x1 = std::max(std::min((float)((iter->x1 - m_iPadDeltaX)/m_fRecoverScale), (float)(img_w - 1)), 0.f);
-        iter->y1 = std::max(std::min((float)((iter->y1 - m_iPadDeltaY)/ m_fRecoverScale),(float)(img_h - 1)), 0.f);
-        iter->x2 = std::max(std::min((float)((iter->x2 - m_iPadDeltaX)/m_fRecoverScale), (float)(img_w - 1)), 0.f);
-        iter->x2 = std::max(std::min((float)((iter->y2 - m_iPadDeltaY)/ m_fRecoverScale),(float)(img_h - 1)), 0.f);
+        float x1 = std::max(std::min((float)((iter->x1 - m_iPadDeltaX)/m_fRecoverScale), (float)(img_w - 1)), 0.f);
+        float y1 = std::max(std::min((float)((iter->y1 -m_iPadDeltaY)/ m_fRecoverScale),(float)(img_h - 1)), 0.f);
+        float x2 = std::max(std::min((float)((iter->x2 - m_iPadDeltaX)/m_fRecoverScale), (float)(img_w - 1)), 0.f);
+        float y2 = std::max(std::min((float)((iter->y2 - m_iPadDeltaY)/ m_fRecoverScale),(float)(img_h - 1)), 0.f);
+
+        iter->x1 = x1;
+        iter->y1 = y1;
+        iter->x2 = x2;
+        iter->y2 = y2;
     }
     return true;  
 }

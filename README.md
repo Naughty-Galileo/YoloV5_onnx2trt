@@ -14,7 +14,11 @@
     cmake ..
     make 
     ```
+- 运行 -i 输入路径 -o 输出路径
+     ```
+  ./build/smoke_detect -i ./images/bus.jpg -o ./assert/bus_result.jpg
+     ```
 ## Demo
-
+![avatar](./assert/bus_result.jpg)
 
 

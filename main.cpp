@@ -1,9 +1,10 @@
 #include <cmath>
+#include <string>
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
 #include "stdlib.h"
-#include <string>
+#include <sys/stat.h>
 #include<opencv2/opencv.hpp>
 #include <opencv2/dnn/dnn.hpp>
 #include <opencv2/core/core.hpp>
@@ -11,7 +12,40 @@
 #include <opencv2/highgui/highgui_c.h>
 #include "SampleDetector.cpp"
 
+
 using namespace cv;
+
+
+int check_filetype(const string &filename)
+{
+    int filetype = -1; //0:image; 1:video
+
+    std::size_t found = filename.rfind('.');
+    if (found != std::string::npos)
+    {
+        string strExt = filename.substr(found);        
+        std::transform(strExt.begin(), strExt.end(), strExt.begin(), ::tolower);
+        if (strExt.compare(".jpg") == 0 ||
+            strExt.compare(".jpeg") == 0 ||
+            strExt.compare(".png") == 0 ||
+            strExt.compare(".bmp") == 0 )
+        {
+            // std::cout << "file type is image" << std::endl;
+            filetype = 0;
+        }
+        if (strExt.compare(".mp4") == 0 ||
+            strExt.compare(".avi") == 0 ||
+            strExt.compare(".flv") == 0 ||
+            strExt.compare(".mkv") == 0 ||
+            strExt.compare(".wmv") == 0 ||
+            strExt.compare(".rmvb") == 0)
+        {
+            // std::cout << "file type is video" << std::endl;
+            filetype = 1;
+        }        
+    }
+    return filetype;
+}
 
 void detect_one_image(SampleDetector* detector, cv::Mat &cv_image)
 {
@@ -51,81 +85,120 @@ void detect_one_image(SampleDetector* detector, cv::Mat &cv_image)
     }
 }
 
-int main(int argc, char const *argv[])
+int main(int argc, char *argv[])
 {
+    int opt;
+    const char *str = "i:o:";
+
+    std::string input_file;
+    std::string output_file;
+    int file_type = -1;
+
+
+    while((opt = getopt(argc, argv, str)) != -1)
+    {
+        switch (opt)
+        {
+            case 'i':
+            {
+                input_file = string(optarg);
+                break;
+            }
+            case 'o':
+            {
+                output_file = string(optarg);
+                break;
+            }
+            default: break;
+        }
+    }
+
+    if(!input_file.empty())
+    {
+        file_type = check_filetype(input_file);
+    }
+
+    if(output_file.empty())
+    {
+        switch (file_type)
+        {
+        case 0:
+            output_file = "./outputs/result.jpg";
+            break;
+        default:
+            output_file = "./outputs/result.mp4";
+            break;
+        }
+    }
+
+    if(!input_file.empty() && !output_file.empty()){
+        assert(check_filetype(input_file)==check_filetype(output_file));
+    }
+
     SampleDetector* detector = new SampleDetector;
     std::string model_path = "./model/yolov5s.onnx";
     detector->Init(model_path);
 
-    if(atoi(argv[1]) == 0)
+    if( file_type == 0)
     {
-        cout<< "image... ..."<<endl;
+        cout<< "file type is image"<<endl;
         cv::Mat src;
-        src = cv::imread("./images/bus.jpg");
+        src = cv::imread(input_file);
         cv::Mat osrc = src.clone();
         detect_one_image(detector, osrc);
 
-        cv::imwrite("./assert/result.jpg", osrc);
+        cv::imwrite(output_file, osrc);
     }
 
-    // else if(atoi(argv[1]) == 1)
-    // {
-    //     std::cout<< "video... ..."<<std::endl;
+    else if( file_type == 1)
+    {
+        std::cout<< "file type is video"<<std::endl;
 
-    //     cv::VideoCapture capture;
-    //     cv::Mat frame;
-    //     string video_path = "../data/test.mp4";
-    //     capture.open(video_path);
-    //     if (!capture.isOpened()) {
-    //         printf("could not read this video file...\n");
-    //         return -1;
-	//     }
-    //     Size size = Size((int)capture.get(CAP_PROP_FRAME_WIDTH), (int)capture.get(CAP_PROP_FRAME_HEIGHT));
-    //     string out_path = "../result.mp4";
-    //     VideoWriter writer(out_path, 0x7634706d, capture.get(CAP_PROP_FPS), size, true);
+        cv::VideoCapture capture;
+        cv::Mat frame;
+        capture.open(input_file);
+        if (!capture.isOpened()) {
+            printf("could not read this video file...\n");
+            return -1;
+	    }
         
-    //     while (capture.read(frame))
-    //     {
-    //         cv::Mat src = frame.clone();
-    //         detect_one_image(detector, src);
-    //         writer.write(src);
-    //         if(argc>=3 && atoi(argv[2]) == 1)
-    //         {
-    //             imshow("output", src);
-    //             waitKey(10);
-    //         }
-    //     }
-    //     capture.release();
-    //     writer.release();
-    //     waitKey(0);
-    // }
+        Size size = Size((int)capture.get(CAP_PROP_FRAME_WIDTH), (int)capture.get(CAP_PROP_FRAME_HEIGHT));
+        VideoWriter writer(output_file, 0x7634706d, capture.get(CAP_PROP_FPS), size, true);
+        
+        while (capture.read(frame))
+        {
+            cv::Mat src = frame.clone();
+            detect_one_image(detector, src);
+            writer.write(src);
+        }
+        capture.release();
+        writer.release();
+        waitKey(0);
+    }
 
-    // else
-    // {
-    //     cout<< "camera... ..."<<endl;
-    //     cv::VideoCapture capture;
-    //     cv::Mat frame;
-    //     capture.open(0);
-    //     if (!capture.isOpened()) {
-    //         printf("could not read this video file...\n");
-    //         return -1;
-	//     }
-    //     Size size = Size((int)capture.get(CAP_PROP_FRAME_WIDTH), (int)capture.get(CAP_PROP_FRAME_HEIGHT));
-    //     string out_path = "../result.mp4";
-    //     VideoWriter writer(out_path, 0x7634706d, capture.get(CAP_PROP_FPS), size, true);
+    else
+    {
+        std::cout<< "file type is camera"<<std::endl;
+        cv::VideoCapture capture;
+        cv::Mat frame;
+        capture.open(0);
+        if (!capture.isOpened()) {
+            printf("could not read camera...\n");
+            return -1;
+	    }
+        Size size = Size((int)capture.get(CAP_PROP_FRAME_WIDTH), (int)capture.get(CAP_PROP_FRAME_HEIGHT));
+        VideoWriter writer(output_file, 0x7634706d, capture.get(CAP_PROP_FPS), size, true);
         
-    //     while (capture.read(frame))
-    //     {
-    //         cv::Mat src = frame.clone();
-    //         detect_one_image(detector, src);
-    //         writer.write(src);
-    //         imshow("output", src);
-    //         waitKey(10);
-    //     }
-    //     capture.release();
-    //     writer.release();
-    //     waitKey(0);
-    // }
+        while (capture.read(frame))
+        {
+            cv::Mat src = frame.clone();
+            detect_one_image(detector, src);
+            writer.write(src);
+        }
+        capture.release();
+        writer.release();
+        waitKey(0);
+    }
     
     return 0;
 }
