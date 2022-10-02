@@ -1,5 +1,6 @@
 # YoloV5_onnx2trt
 > onnx->tensorrt c++ 部署
+> 支持图片、视频、摄像头
 
 ##  Quick Start
 - 训练模型
