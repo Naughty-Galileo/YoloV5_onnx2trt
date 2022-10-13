@@ -126,6 +126,7 @@ bool SampleDetector::Init(const std::string& strModelName) {
     cudaStreamCreate(&m_CudaStream);
     m_cPasteBoard = cv::Mat(m_cModelInputSize, CV_8UC3, cv::Scalar(128, 128, 128));
     cout << "Init Done."<<endl;
+    m_bUninit = false;
 }
 
 bool SampleDetector::UnInit() {
