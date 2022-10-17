@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(smoke_detect)
+project(demo)
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -29,8 +29,8 @@ target_link_libraries(detector
         -L/usr/local/cuda/lib64/ -lcudart 
 )
 
-add_executable(smoke_detect main.cpp)
-target_link_libraries(smoke_detect
+add_executable(demo main.cpp)
+target_link_libraries(demo
         ${OpenCV_LIBS}
         detector
         glog
