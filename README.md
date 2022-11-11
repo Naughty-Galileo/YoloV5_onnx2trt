@@ -5,6 +5,8 @@
 ##  Quick Start
 - 训练模型
 - 导出为onnx文件
+    > 在使用yolov5官方源码导出onnx模型时**只支持tensort主版本为8的推理** \
+    > 若tensorrt主版本为7时需要修改导出代码，导出代码见export.py  
 - 将onnx文件放到工程目录下的model文件夹下
 - 配置相关环境，opencv,cuda …
 - 更改classnames,mIou_thresh,mConf_thresh
